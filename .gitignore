@@ -1,1 +1,3 @@
 Ia_env1/
+__pycache__/
+*.pyc
