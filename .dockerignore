@@ -1,0 +1,36 @@
+# Environnement virtuel
+Ia_env1/
+env/
+.env
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# Base de données
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Logs
+*.log
+
+# Cache
+.cache/
+*.egg-info/
+dist/
+build/
