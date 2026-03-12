@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'whitenoise.runserver_nostatic',  # Pour Whitenoise
     'django_filters',
-    'django_celery_result', # J'ai ajouté celery result et beat  
+    'django_celery_results', # J'ai ajouté celery result et beat  
     'django_celery_beat',
     
     # Local apps

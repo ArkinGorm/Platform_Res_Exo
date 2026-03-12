@@ -7,4 +7,6 @@ router.register(r'exercises', ExerciseViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+
+    path('published/', ExerciseViewSet.as_view({'get': 'published'}), name='published'),
 ]
