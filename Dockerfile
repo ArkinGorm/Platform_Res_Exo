@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Définir le répertoire de travail
-WORKDIR /app
+WORKDIR /app/backend
 
 # Installer les dépendances systèmes nécessaires
 Run apt-get update && apt-get install -y \
@@ -17,8 +17,8 @@ Run apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Installer les dépendances Pythonzzzz
-COPY requirements.txt /app/
-Run pip install --no-cache-dir -r requirements.txt
+COPY backend/requirements.txt /app/
+Run pip install --no-cache-dir -r /app/requirements.txt
 
 # Copier le projet
 COPY . /app/
