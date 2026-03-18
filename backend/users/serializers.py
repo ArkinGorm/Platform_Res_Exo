@@ -11,7 +11,7 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'first_name', 'last_name']
+        fields = ['id', 'username', 'email', 'role']
         read_only_fields = ['id']
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -20,7 +20,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'password2', 'email', 'first_name', 'last_name', 'role']
+        fields = ['username', 'password', 'password2', 'email', 'role']
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
@@ -33,46 +33,46 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return user
     
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    # ICI : On neutralise la contrainte du parent
-    username = serializers.CharField(required=False, read_only=True)
-
-
+    # 1. On définit email et password
     email = serializers.EmailField(write_only=True)
     password = serializers.CharField(write_only=True)
+    
+    # 2. On écrase la définition du parent pour rendre username optionnel
+    username = serializers.CharField(required=False, allow_blank=True, read_only=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 3. Sécurité supplémentaire : on retire 'username' des champs requis
+        self.fields['username'].required = False
 
     def validate(self, attrs):
         email = attrs.get("email")
         password = attrs.get("password")
 
-        # On récupère l'utilisateur avec son email
+        # Recherche de l'utilisateur par email
         try:
-            user = User.objects.get(email=email)
+            user_obj = User.objects.get(email=email)
         except User.DoesNotExist:
             raise serializers.ValidationError({"email": "Utilisateur introuvable"})
 
-        # Authenticate avec username (Django requiert toujours username)
-        user = authenticate(username=user.username, password=password)
+        # Authentification (Django utilise le username interne)
+        user = authenticate(username=user_obj.username, password=password)
 
         if not user:
             raise serializers.ValidationError({"password": "Mot de passe incorrect"})
 
         if not user.is_active:
             raise serializers.ValidationError({"detail": "Compte désactivé"})
-        # Générer les tokens manuellement
+
+        # Génération manuelle du token
         refresh = RefreshToken.for_user(user)
 
-        data = {
+        return {
             "refresh": str(refresh),
             "access": str(refresh.access_token),
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "role": getattr(user, 'role', None), # Sécurité si role n'existe pas
+            }
         }
-
-        # Ajouter les infos de l'utilisateur à la réponse
-        data["user"] = {
-            "id": user.id,
-            "email": user.email,
-            "role": user.role,
-            "first_name": user.first_name,
-            "last_name": user.last_name
-        }
-
-        return data

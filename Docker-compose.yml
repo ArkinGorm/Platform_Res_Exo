@@ -82,9 +82,9 @@ services:
       - .:/app
       - /var/run/docker.sock:/var/run/docker.sock  # pour acceder à docker 
     environment:
-      DB_NAME: platforme_Res_Exo_db
+      DB_NAME: plateforme_Res_Exo_db
       DB_USER: olivier
-      DB_PASSWORD: olivier1@.$
+      DB_PASSWORD: Olivier1@.$
       DB_HOST: db
       DB_PORT: 5432
       REDIS_HOST: redis

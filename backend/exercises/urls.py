@@ -3,10 +3,9 @@ from rest_framework.routers import DefaultRouter
 from .views import ExerciseViewSet
 
 router = DefaultRouter()
-router.register(r'exercises', ExerciseViewSet)
+# On enregistre avec un préfixe vide car 'exercises/' est déjà dans l'URL principal
+router.register(r'', ExerciseViewSet, basename='exercise')
 
 urlpatterns = [
     path('', include(router.urls)),
-
-    path('published/', ExerciseViewSet.as_view({'get': 'published'}), name='published'),
 ]

@@ -2,53 +2,64 @@ from celery import shared_task
 from .models import Submission, TestResult
 from exercises.models import TestCase
 from .sandbox import CodeSandbox
-import json
+import logging
 
-@shared_task(bind=True, max_retries=3)
+logger = logging.getLogger(__name__)
+
+@shared_task(bind=True, max_retries=2) # On réduit un peu les retries pour les erreurs fatales
 def execute_code_task(self, submission_id):
-    """
-    Tâche Celery pour exécuter le code en arrière-plan
-    """
+    submission = None  # Crucial pour éviter l'UnboundLocalError
+    
     try:
-        # Récupérer la soumission
-        submission = Submission.objects.get(id=submission_id)
-        submission.status = 'pending'
+        # 1. Récupération sécurisée de la soumission
+        try:
+            submission = Submission.objects.get(id=submission_id)
+        except Submission.DoesNotExist:
+            logger.error(f"OUPS !Submission {submission_id} introuvable.")
+            return False
+
+        # 2. Mise à jour initiale
+        submission.status = 'processing' # On met 'processing' car 'pending' est le statut par défaut
         submission.save()
         
-        # Récupérer l'exercice et les tests
+        # 3. Récupérer l'exercice et les tests
         exercise = submission.exercise
         test_cases = TestCase.objects.filter(exercise=exercise)
         
-        # Créer le sandbox
+        # 4. Exécution Sandbox
         sandbox = CodeSandbox(language=exercise.language)
-        
-        # Exécuter les tests
         results = sandbox.execute_with_tests(submission.code, test_cases)
         
-        # Sauvegarder les résultats
+        # 5. Sauvegarder les résultats (utilisation de TestResult)
         for result in results['results']:
+            # Dans ton tasks.py, modifie la création du TestResult :
             TestResult.objects.create(
                 submission=submission,
                 test_case_id=result['test_case_id'],
                 passed=result['passed'],
-                actual_output=result['output'] or result['error'],
-                error_message=result['error'],
-                execution_time=result['execution_time']
+                actual_output=result.get('output') or "", # Force une chaîne vide si None
+                error_message=result.get('error') or "",  # SOLUTION ICI : Force une chaîne vide si None
+                execution_time=result.get('execution_time', 0)
             )
         
-        # Mettre à jour le statut de la soumission
+        # 6. Finalisation du statut
         submission.status = 'passed' if results['all_passed'] else 'failed'
-        submission.execution_time = sum(r['execution_time'] for r in results['results'])
+        submission.execution_time = sum(r.get('execution_time', 0) for r in results['results'])
         submission.save()
         
         return {
             'submission_id': submission_id,
-            'status': submission.status,
-            'results': results
+            'status': submission.status
         }
         
     except Exception as e:
-        # En cas d'erreur, réessayer
-        submission.status = 'error'
-        submission.save()
-        self.retry(exc=e, countdown=60)
+        logger.error(f"Erreur Task {submission_id}: {str(e)}")
+        
+        # Si on a pu récupérer la soumission, on marque l'erreur en DB
+        if submission:
+            submission.status = 'error'
+            submission.save()
+        
+        # On ne retry que si ce n'est pas une erreur de credentials (OperationalError)
+        # Mais pour debug, on peut laisser le retry
+        raise self.retry(exc=e, countdown=10)

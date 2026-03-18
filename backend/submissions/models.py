@@ -20,6 +20,7 @@ class Submission(models.Model):
 class TestResult(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name='test_results')
     test_case = models.ForeignKey('exercises.TestCase', on_delete=models.CASCADE)
+    execution_time = models.FloatField(default=0.0) # Ajoute cette ligne
     passed = models.BooleanField(default=False)
     actual_output = models.TextField(blank=True)
     error_message = models.TextField(blank=True)

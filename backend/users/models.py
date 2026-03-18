@@ -6,6 +6,8 @@ class User(AbstractUser):
         ('admin', 'Administrateur'),
         ('participant', 'Participant'),
     )
+    first_name = None
+    last_name = None
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='participant')
     email = models.EmailField(unique=True)
     
