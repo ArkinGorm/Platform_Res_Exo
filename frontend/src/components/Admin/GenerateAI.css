@@ -1,0 +1,88 @@
+.gen-container {
+  min-height: 100vh;
+  background: #0f1117;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.gen-card {
+  background: #1a1d27;
+  border: 1px solid #2a2d3e;
+  border-radius: 16px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 520px;
+  color: #e2e8f0;
+}
+
+.gen-back {
+  background: transparent;
+  border: 1px solid #2a2d3e;
+  color: #64748b;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+  display: inline-block;
+}
+.gen-back:hover { color: #e2e8f0; }
+
+.gen-icon     { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.gen-title    { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.5rem; }
+.gen-subtitle { color: #64748b; font-size: 0.9rem; line-height: 1.6; margin: 0 0 2rem; }
+
+.gen-form { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.gen-field    { display: flex; flex-direction: column; gap: 0.4rem; }
+.gen-field label { font-size: 0.85rem; color: #64748b; font-weight: 500; }
+
+.gen-optional { font-size: 0.78rem; color: #475569; }
+
+.gen-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.gen-input, .gen-select {
+  background: #0f1117;
+  border: 1px solid #2a2d3e;
+  border-radius: 7px;
+  color: #e2e8f0;
+  padding: 0.65rem 0.9rem;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.gen-input:focus, .gen-select:focus { border-color: #8b5cf6; }
+.gen-input::placeholder { color: #475569; }
+.gen-select option { background: #1a1d27; }
+
+.gen-btn {
+  padding: 0.9rem;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: white;
+  border: none;
+  border-radius: 9px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  transition: opacity 0.2s;
+}
+.gen-btn:hover:not(:disabled) { opacity: 0.88; }
+.gen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.gen-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

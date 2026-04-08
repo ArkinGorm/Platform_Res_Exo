@@ -12,22 +12,31 @@ const Navbar = () => {
     navigate('/login');
   };
 
+  const isAdmin = user?.role === 'admin';
+
   return (
     <nav className="navbar">
       <div className="nav-container">
         <Link to="/" className="nav-logo">
-           CodeTrainer
+          CodeTrainer
         </Link>
-        
+
         <div className="nav-menu">
           <Link to="/exercises" className="nav-link">
             Exercices
           </Link>
-          
+
+          {/* Section Admin — visible uniquement pour les admins connectés */}
+          {isAdmin && (
+            <Link to="/admin" className="nav-link nav-link-admin">
+              ⚙ Admin
+            </Link>
+          )}
+
           {user ? (
             <>
               <Link to="/profile" className="nav-link">
-                 {user.username}
+                {user.username || user.email}
               </Link>
               <button onClick={handleLogout} className="nav-link btn-logout">
                 Déconnexion

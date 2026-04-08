@@ -7,18 +7,25 @@ import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import ExerciseList from './components/Exercises/ExerciseList';
 import ExerciseDetail from './components/Exercises/ExerciseDetail';
+import AdminDashboard from './components/Admin/AdminDashboard';
+import ExerciseForm from './components/Admin/ExerciseForm';
+import GenerateAI from './components/Admin/GenerateAI';
 import './App.css';
 
-// Route protégée
+// ── Route protégée (authentification) ──────────────────────────
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  
   if (loading) return <div>Chargement...</div>;
-  
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-  
+  if (!user)   return <Navigate to="/login" />;
+  return children;
+};
+
+// ── Route admin uniquement ──────────────────────────────────────
+const AdminRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <div>Chargement...</div>;
+  if (!user)              return <Navigate to="/login" />;
+  if (user.role !== 'admin') return <Navigate to="/exercises" />;
   return children;
 };
 
@@ -27,24 +34,32 @@ function AppContent() {
     <>
       <Navbar />
       <Routes>
-        <Route path="/login" element={<Login />} />
+        {/* Auth */}
+        <Route path="/login"    element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route 
-          path="/exercises" 
-          element={
-            <ProtectedRoute>
-              <ExerciseList />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/exercises/:id" 
-          element={
-            <ProtectedRoute>
-              <ExerciseDetail />
-            </ProtectedRoute>
-          } 
-        />
+
+        {/* Participant */}
+        <Route path="/exercises" element={
+          <ProtectedRoute><ExerciseList /></ProtectedRoute>
+        }/>
+        <Route path="/exercises/:id" element={
+          <ProtectedRoute><ExerciseDetail /></ProtectedRoute>
+        }/>
+
+        {/* Admin */}
+        <Route path="/admin" element={
+          <AdminRoute><AdminDashboard /></AdminRoute>
+        }/>
+        <Route path="/admin/exercises/create" element={
+          <AdminRoute><ExerciseForm /></AdminRoute>
+        }/>
+        <Route path="/admin/exercises/:id/edit" element={
+          <AdminRoute><ExerciseForm /></AdminRoute>
+        }/>
+        <Route path="/admin/generate" element={
+          <AdminRoute><GenerateAI /></AdminRoute>
+        } />
+
         <Route path="/" element={<Navigate to="/exercises" />} />
       </Routes>
     </>

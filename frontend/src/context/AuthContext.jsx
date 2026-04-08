@@ -13,12 +13,21 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  // Initialise directement depuis localStorage pour éviter le flash de redirection
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (token) {
+      // Vérifie que le token est toujours valide en appelant /me
       loadUser();
     } else {
       setLoading(false);
@@ -28,9 +37,16 @@ export const AuthProvider = ({ children }) => {
   const loadUser = async () => {
     try {
       const response = await getProfile();
-      setUser(response.data.user);
+      // L'endpoint /me retourne directement l'objet user (pas response.data.user)
+      const userData = response.data;
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
     } catch (error) {
-      logout();
+      // Token invalide/expiré → déconnexion silencieuse
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -56,7 +72,7 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     logout,
-    loading
+    loading,
   };
 
   return (

@@ -20,7 +20,12 @@ const Login = () => {
       const response = await loginApi(email, password);
       const { access, refresh, user } = response.data;
       login(user, { access, refresh });
-      navigate('/exercises');
+      // redirection selon le rôle
+      if (user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/exercises');
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Erreur de connexion');
     } finally {

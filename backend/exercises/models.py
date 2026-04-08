@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from .Auto_Gen.models_ai import ExerciseGenerationRequest
 
 class Exercise(models.Model):
     DIFFICULTY_CHOICES = (
@@ -21,6 +22,9 @@ class Exercise(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     is_published = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    ai_generated = models.BooleanField(default=False)
+    ai_provider = models.CharField(max_length=50, blank=True)
+    ai_model = models.CharField(max_length=100, blank=True)
     
     def __str__(self):
         return self.title

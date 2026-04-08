@@ -22,7 +22,7 @@ const ExerciseCard = ({ exercise }) => {
         <span className="language">{exercise.language}</span>
       </div>
       <p className="exercise-description">
-        {exercise.description.substring(0, 100)}...
+        {exercise.description?.substring(0, 100)}...
       </p>
     </Link>
   );
