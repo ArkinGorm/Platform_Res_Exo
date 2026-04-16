@@ -1,0 +1,99 @@
+
+.ec-card {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+  border: 1px solid #eee;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s, box-shadow 0.2s;
+  overflow: hidden;
+  position: relative;
+}
+
+.ec-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(102,126,234,0.2);
+  border-color: #c7d2fe;
+}
+
+/* ── Accent bar (bande de couleur gauche) ── */
+.ec-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  border-radius: 14px 0 0 14px;
+}
+.ec-accent--facile    { background: #4caf50; }
+.ec-accent--moyen     { background: #ff9800; }
+.ec-accent--difficile { background: #f44336; }
+
+/* ── Body ── */
+.ec-body {
+  padding: 1.25rem 1.25rem 1rem 1.5rem;
+  flex: 1;
+}
+
+/* ── Badges ── */
+.ec-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.ec-badge {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+}
+
+.ec-badge--facile    { background: #e8f5e9; color: #2e7d32; }
+.ec-badge--moyen     { background: #fff3e0; color: #e65100; }
+.ec-badge--difficile { background: #ffebee; color: #c62828; }
+.ec-badge--lang      { background: #f3f4f6; color: #4b5563; }
+.ec-badge--ai        { background: #ede9fe; color: #6d28d9; }
+
+/* ── Titre ── */
+.ec-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 0.6rem;
+  line-height: 1.4;
+}
+
+/* ── Description ── */
+.ec-desc {
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Footer ── */
+.ec-footer {
+  padding: 0.75rem 1.25rem 0.9rem 1.5rem;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ec-cta {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #667eea;
+  transition: gap 0.2s;
+}
+
+.ec-card:hover .ec-cta {
+  text-decoration: underline;
+}

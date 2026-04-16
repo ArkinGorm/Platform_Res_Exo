@@ -9,17 +9,16 @@ import './ExerciseDetail.css';
 
 const ExerciseDetail = () => {
   const { id } = useParams();
-  const [exercise, setExercise]       = useState(null);
-  const [code, setCode]               = useState('');
-  const [loading, setLoading]         = useState(true);
-  const [submitting, setSubmitting]   = useState(false);
-  const [running, setRunning]         = useState(false);
-  const [results, setResults]         = useState(null);
+  const [exercise, setExercise] = useState(null);
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [results, setResults] = useState(null);
   const [submissionId, setSubmissionId] = useState(null);
   const [globalStatus, setGlobalStatus] = useState(null);
   const [consoleLogs, setConsoleLogs] = useState([]);
-  const [userInput, setUserInput]     = useState('');
-  const [showInput, setShowInput]     = useState(false);
+  const [userInput, setUserInput] = useState('');
   const consoleRef = useRef(null);
 
   useEffect(() => { loadExercise(); }, [id]);
@@ -57,14 +56,14 @@ const ExerciseDetail = () => {
   const handleRun = async () => {
     setRunning(true);
     setConsoleLogs([]);
-    addLog(`▶ Exécution avec entrée : ${userInput || '(vide)'}`, 'info');
+    addLog(`▶ Exécution${userInput ? ` avec entrée : ${userInput}` : ''}`, 'info');
 
     try {
       const response = await runCode(id, code, userInput);
       const { output, error } = response.data;
 
       if (output) addLog(output, 'stdout');
-      if (error)  addLog(error,  'error');
+      if (error) addLog(error, 'error');
       if (!output && !error) addLog('(aucune sortie)', 'info');
     } catch {
       addLog('Erreur lors de l\'exécution', 'error');
@@ -107,7 +106,7 @@ const ExerciseDetail = () => {
         setGlobalStatus(submission.status);
 
         submission.test_results?.forEach((result, index) => {
-          if (result.output)        addLog(`[Test ${index + 1}] stdout: ${result.output}`, 'stdout');
+          if (result.output) addLog(`[Test ${index + 1}] stdout: ${result.output}`, 'stdout');
           if (result.error_message) addLog(`[Test ${index + 1}] stderr: ${result.error_message}`, 'error');
         });
 
@@ -127,17 +126,17 @@ const ExerciseDetail = () => {
   const getLanguageExtension = () => {
     switch (exercise?.language) {
       case 'javascript': return [javascript()];
-      case 'python':     return [python()];
-      default:           return [];
+      case 'python': return [python()];
+      default: return [];
     }
   };
 
   const passedCount = results?.filter(r => r.passed).length ?? 0;
-  const totalCount  = results?.length ?? 0;
+  const totalCount = results?.length ?? 0;
   const successRate = totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0;
-  const isBusy      = submitting || running;
+  const isBusy = submitting || running;
 
-  if (loading)   return <div className="ex-loading">Chargement...</div>;
+  if (loading) return <div className="ex-loading">Chargement...</div>;
   if (!exercise) return (
     <div className="ex-error">
       <h2>Exercice introuvable</h2>
@@ -238,27 +237,23 @@ const ExerciseDetail = () => {
             )}
           </div>
 
-          {/* Zone saisie entrée libre */}
-          {showInput && (
-            <div className="ex-input-zone">
-              <input
-                className="ex-input-field"
-                type="text"
-                placeholder={exercise.language === 'javascript' ? 'ex: [2, 3] ou "hello"' : 'ex: [2, 3] ou "hello"'}
-                value={userInput}
-                onChange={e => setUserInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !isBusy && handleRun()}
-              />
-              <span className="ex-input-hint">Entrée — appuie sur ↵ ou clique Exécuter</span>
-            </div>
-          )}
+          {/* Zone saisie entrée libre — toujours visible */}
+          <div className="ex-input-zone">
+            <input
+              className="ex-input-field"
+              type="text"
+              placeholder='Entrée optionnelle — ex: [2, 3] ou "hello"'
+              value={userInput}
+              onChange={e => setUserInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !isBusy && handleRun()}
+            />
+            <span className="ex-input-hint">↵ pour exécuter</span>
+          </div>
 
           <div className="ex-console-body" ref={consoleRef}>
             {consoleLogs.length === 0 && (
               <span className="ex-console-placeholder">
-                {showInput
-                  ? 'Entre une valeur ci-dessus puis clique ▶ Exécuter'
-                  : 'La sortie de ton code apparaîtra ici...'}
+                La sortie de ton code apparaîtra ici...
               </span>
             )}
             {consoleLogs.map((log, i) => (
@@ -276,29 +271,13 @@ const ExerciseDetail = () => {
           </div>
           <div className="ex-panel-body ex-actions-body">
             <button
-              className={`ex-btn ex-btn-run ${showInput ? 'active' : ''}`}
-              onClick={() => {
-                if (!showInput) {
-                  setShowInput(true);
-                } else {
-                  handleRun();
-                }
-              }}
+              className="ex-btn ex-btn-run"
+              onClick={handleRun}
               disabled={isBusy}
             >
               <span className="ex-btn-icon">▶</span>
-              {showInput ? 'Lancer' : 'Exécuter'}
+              Exécuter
             </button>
-
-            {showInput && (
-              <button
-                className="ex-btn ex-btn-cancel"
-                onClick={() => { setShowInput(false); setUserInput(''); }}
-                disabled={isBusy}
-              >
-                Annuler
-              </button>
-            )}
 
             <button
               className="ex-btn ex-btn-submit"

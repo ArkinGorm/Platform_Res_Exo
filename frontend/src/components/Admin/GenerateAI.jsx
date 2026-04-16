@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import './GenerateAI.css';
 
 const POLL_INTERVAL = 3000;
+// Timeout max de polling : 5 minutes (100 tentatives × 3s)
+const MAX_POLL_ATTEMPTS = 100;
 
 const GenerateAI = () => {
   const navigate = useNavigate();
@@ -15,10 +17,11 @@ const GenerateAI = () => {
   const [requestId, setRequestId] = useState(null);
   const [statusMsg, setStatusMsg] = useState('');
   const pollRef = useRef(null);
+  const pollAttemptsRef = useRef(0);
 
   const [config, setConfig] = useState({
     provider: 'ollama',
-    model: 'qwen2.5-coder:7b',
+    model: 'qwen2.5-coder:1.5b',   // cohérent avec le select par défaut
     difficulty: 'facile',
     language: 'python',
     topic: '',
@@ -28,29 +31,64 @@ const GenerateAI = () => {
   });
 
   const handleProviderChange = (provider) => {
-    const defaultModel = provider === 'ollama' ? 'qwen2.5-coder:7b' : 'gemini-1.5-flash';
+    const defaultModel = provider === 'ollama' ? 'qwen2.5-coder:1.5b' : 'gemini-2.5-flash';
     setConfig(c => ({ ...c, provider, model: defaultModel }));
   };
 
   useEffect(() => {
     if (!requestId) return;
+
+    pollAttemptsRef.current = 0;
+
     const poll = async () => {
+      pollAttemptsRef.current += 1;
+
+      // Timeout max : évite un polling infini si le backend plante silencieusement
+      if (pollAttemptsRef.current > MAX_POLL_ATTEMPTS) {
+        clearInterval(pollRef.current);
+        setGenerating(false);
+        setStep('config');
+        toast.error('Délai dépassé. La génération a peut-être échoué côté serveur.');
+        return;
+      }
+
       try {
         const res = await pollAIGeneration(requestId);
         const data = res.data;
+
         if (data.status === 'completed') {
           clearInterval(pollRef.current);
           setGenerating(false);
           toast.success('Exercice généré ! Vérifie et ajuste avant de publier.');
-          setPrefill({ exercise_id: data.exercise_id, title: data.exercise_title, validation_score: data.validation_score, attempts: data.attempts });
+
+          // Pré-remplissage complet d'ExerciseForm avec toutes les données de l'exercice
+          // Le serializer retourne maintenant exercise_* pour éviter un 2e appel API
+          setPrefill({
+            exercise_id:       data.exercise_id,
+            title:             data.exercise_title       || '',
+            description:       data.exercise_description || '',
+            solution:          data.exercise_solution    || '',
+            solution_template: data.exercise_solution_template || '',
+            difficulty:        data.exercise_difficulty  || config.difficulty,
+            language:          data.exercise_language    || config.language,
+            test_cases:        data.exercise_test_cases  || [],
+            validation_score:  data.validation_score,
+            attempts:          data.attempts,
+          });
           setStep('preview');
+
         } else if (data.status === 'failed') {
           clearInterval(pollRef.current);
           setGenerating(false);
           setStep('config');
           toast.error(data.error_message || 'La génération IA a échoué.');
+
         } else {
-          setStatusMsg(data.status === 'running' ? `Génération en cours… (tentative ${data.attempts || 1})` : "En file d'attente…");
+          setStatusMsg(
+            data.status === 'running'
+              ? `Génération en cours… (tentative ${data.attempts || 1})`
+              : "En file d'attente…"
+          );
         }
       } catch {
         clearInterval(pollRef.current);
@@ -59,13 +97,17 @@ const GenerateAI = () => {
         toast.error('Erreur lors du suivi de la génération.');
       }
     };
+
     pollRef.current = setInterval(poll, POLL_INTERVAL);
-    poll();
+    poll(); // première poll immédiate
     return () => clearInterval(pollRef.current);
   }, [requestId]);
 
   const handleGenerate = async () => {
-    if (!config.topic.trim()) { toast.error("Merci d'indiquer un thème."); return; }
+    if (!config.topic.trim()) {
+      toast.error("Merci d'indiquer un thème.");
+      return;
+    }
     setGenerating(true);
     setStatusMsg("Envoi de la demande…");
     setStep('waiting');
@@ -114,7 +156,7 @@ const GenerateAI = () => {
           <div className="gen-field">
             <label>Modèle IA</label>
             <select className="gen-select" value={config.provider} onChange={e => handleProviderChange(e.target.value)}>
-              <option value="ollama">Ollama — qwen2.5-coder:7b (local)</option>
+              <option value="ollama">Ollama — qwen2.5-coder:1.5b (local)</option>
               <option value="gemini">Google Gemini</option>
             </select>
           </div>
@@ -123,15 +165,21 @@ const GenerateAI = () => {
             <div className="gen-field">
               <label>Version Gemini</label>
               <select className="gen-select" value={config.model} onChange={e => setConfig(c => ({ ...c, model: e.target.value }))}>
-                <option value="gemini-3.5-flash">gemini-3.5-flash (rapide)</option>
-                <option value="gemini-3.5-pro">gemini-3.5-pro (qualité)</option>
+                <option value="gemini-2.0-flash">gemini-2.0-flash (si disponible)</option>
+                <option value="gemini-2.5-flash">gemini-2.5-flash (rapide, stable)</option>
+                <option value="gemini-2.5-pro">gemini-2.5-pro (qualité max)</option>
               </select>
             </div>
           )}
 
           <div className="gen-field">
             <label>Thème / Sujet <span className="gen-required">*</span></label>
-            <input className="gen-input" value={config.topic} onChange={e => setConfig(c => ({ ...c, topic: e.target.value }))} placeholder="ex : manipulation de chaînes, récursivité, tri par sélection…" />
+            <input
+              className="gen-input"
+              value={config.topic}
+              onChange={e => setConfig(c => ({ ...c, topic: e.target.value }))}
+              placeholder="ex : manipulation de chaînes, récursivité, tri par sélection…"
+            />
           </div>
 
           <div className="gen-row">
@@ -155,17 +203,33 @@ const GenerateAI = () => {
 
           <div className="gen-field">
             <label>Instructions supplémentaires <span className="gen-optional">(optionnel)</span></label>
-            <input className="gen-input" value={config.extra_instructions} onChange={e => setConfig(c => ({ ...c, extra_instructions: e.target.value }))} placeholder="ex : utilise uniquement des listes, évite la récursivité…" />
+            <input
+              className="gen-input"
+              value={config.extra_instructions}
+              onChange={e => setConfig(c => ({ ...c, extra_instructions: e.target.value }))}
+              placeholder="ex : utilise uniquement des listes, évite la récursivité…"
+            />
           </div>
 
           <div className="gen-row" style={{ alignItems: 'center' }}>
             <div className="gen-field">
               <label>Créativité : {config.temperature}</label>
-              <input type="range" min="0" max="1" step="0.1" value={config.temperature} onChange={e => setConfig(c => ({ ...c, temperature: parseFloat(e.target.value) }))} style={{ width: '100%' }} />
+              <input
+                type="range" min="0" max="1" step="0.1"
+                value={config.temperature}
+                onChange={e => setConfig(c => ({ ...c, temperature: parseFloat(e.target.value) }))}
+                style={{ width: '100%' }}
+              />
             </div>
             <div className="gen-field" style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 20 }}>
-              <input type="checkbox" id="auto-publish" checked={config.auto_publish} onChange={e => setConfig(c => ({ ...c, auto_publish: e.target.checked }))} />
-              <label htmlFor="auto-publish" style={{ cursor: 'pointer', marginBottom: 0 }}>Publier automatiquement</label>
+              <input
+                type="checkbox" id="auto-publish"
+                checked={config.auto_publish}
+                onChange={e => setConfig(c => ({ ...c, auto_publish: e.target.checked }))}
+              />
+              <label htmlFor="auto-publish" style={{ cursor: 'pointer', marginBottom: 0 }}>
+                Publier automatiquement
+              </label>
             </div>
           </div>
 

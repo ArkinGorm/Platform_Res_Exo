@@ -19,25 +19,34 @@ const ExerciseForm = ({ prefill = null }) => {
 
   const [form, setForm] = useState({
     title: '', description: '', difficulty: 'facile',
-    language: 'python', solution: '', is_published: false,
+    language: 'python', solution: '', solution_template: '', is_published: false,
   });
   const [testCases, setTestCases]       = useState([{ ...EMPTY_TC }]);
   const [testResults, setTestResults]   = useState(null);
-  const [validation, setValidation]     = useState(null);  // rapport validate_tests
+  const [validation, setValidation]     = useState(null);
   const [saving, setSaving]             = useState(false);
   const [testing, setTesting]           = useState(false);
   const [validating, setValidating]     = useState(false);
   const [activeTab, setActiveTab]       = useState('info');
+  // Pour les exercices IA : afficher solution complète ou template étudiant
+  const [showSolutionTemplate, setShowSolutionTemplate] = useState(false);
 
   useEffect(() => {
     if (prefill) {
       setForm({
-        title: prefill.title || '', description: prefill.description || '',
-        difficulty: prefill.difficulty || 'facile', language: prefill.language || 'python',
-        solution: prefill.solution || '', is_published: false,
+        title:             prefill.title             || '',
+        description:       prefill.description       || '',
+        difficulty:        prefill.difficulty        || 'facile',
+        language:          prefill.language          || 'python',
+        solution:          prefill.solution          || '',
+        solution_template: prefill.solution_template || prefill.solution || '',
+        is_published:      false,
       });
-      if (prefill.test_cases?.length > 0)
+      if (prefill.test_cases?.length > 0) {
         setTestCases(prefill.test_cases.map((tc, i) => ({ ...tc, order: i + 1 })));
+      }
+      // Basculer sur l'onglet solution pour vérifier ce que l'IA a généré
+      setActiveTab('solution');
     } else if (isEdit) {
       loadExercise();
     }
@@ -48,9 +57,13 @@ const ExerciseForm = ({ prefill = null }) => {
       const res = await getExercise(id);
       const ex  = res.data;
       setForm({
-        title: ex.title, description: ex.description,
-        difficulty: ex.difficulty, language: ex.language,
-        solution: ex.solution || '', is_published: ex.is_published,
+        title:             ex.title,
+        description:       ex.description,
+        difficulty:        ex.difficulty,
+        language:          ex.language,
+        solution:          ex.solution          || '',
+        solution_template: ex.solution_template || ex.solution || '',
+        is_published:      ex.is_published,
       });
       if (ex.test_cases?.length > 0) setTestCases(ex.test_cases);
     } catch { toast.error('Erreur lors du chargement'); }
@@ -63,6 +76,19 @@ const ExerciseForm = ({ prefill = null }) => {
   const removeTc     = (i) => {
     if (testCases.length === 1) return toast.error('Il faut au moins un test case');
     setTestCases(p => p.filter((_, idx) => idx !== i));
+  };
+
+  // Valeur courante de l'éditeur selon le toggle solution/template
+  const currentSolutionValue = showSolutionTemplate
+    ? form.solution_template
+    : form.solution;
+
+  const handleSolutionEditorChange = (v) => {
+    if (showSolutionTemplate) {
+      handleField('solution_template', v);
+    } else {
+      handleField('solution', v);
+    }
   };
 
   // ── Tester la solution ───────────────────────────────────────
@@ -100,7 +126,6 @@ const ExerciseForm = ({ prefill = null }) => {
       setValidation(report);
       setActiveTab('validate');
 
-      // Appliquer les auto-corrections sur les test cases
       if (report.test_cases?.length > 0) {
         setTestCases(prev => prev.map((tc, i) => {
           const checked = report.test_cases[i];
@@ -149,6 +174,7 @@ const ExerciseForm = ({ prefill = null }) => {
   };
 
   const hasBlockers = validation?.issues?.length > 0;
+  const hasSolutionTemplate = Boolean(form.solution_template && form.solution_template !== form.solution);
 
   return (
     <div className="ef-container">
@@ -157,7 +183,7 @@ const ExerciseForm = ({ prefill = null }) => {
       <div className="ef-header">
         <button className="ef-back-btn" onClick={() => navigate('/admin')}>← Retour</button>
         <h1 className="ef-title">
-          {isEdit ? 'Modifier l\'exercice' : 'Nouvel exercice'}
+          {prefill ? '✨ Exercice généré par IA' : isEdit ? 'Modifier l\'exercice' : 'Nouvel exercice'}
         </h1>
         <div className="ef-header-actions">
           <button className="ef-btn ef-btn-validate" onClick={handleValidate} disabled={validating || saving}>
@@ -179,6 +205,20 @@ const ExerciseForm = ({ prefill = null }) => {
           </button>
         </div>
       </div>
+
+      {/* ── Bandeau IA ── */}
+      {prefill && (
+        <div className="ef-ai-banner">
+          🤖 Exercice généré par IA
+          {prefill.validation_score && (
+            <span className="ef-ai-score"> · Score qualité : {prefill.validation_score}/100</span>
+          )}
+          {prefill.attempts && (
+            <span className="ef-ai-attempts"> · {prefill.attempts} tentative(s)</span>
+          )}
+          <span className="ef-ai-hint"> — Vérifiez et ajustez avant de publier.</span>
+        </div>
+      )}
 
       {/* ── Onglets ── */}
       <div className="ef-tabs">
@@ -244,7 +284,6 @@ const ExerciseForm = ({ prefill = null }) => {
                 </select>
               </div>
             </div>
-            {/* Aperçu clarté énoncé */}
             {validation?.warnings?.filter(w =>
               w.includes('énoncé') || w.includes('titre') || w.includes('fonction') || w.includes('paramètre')
             ).map((w, i) => (
@@ -256,14 +295,42 @@ const ExerciseForm = ({ prefill = null }) => {
         {/* ── Onglet Solution ── */}
         {activeTab === 'solution' && (
           <div className="ef-section">
+
+            {/* Toggle solution complète / template étudiant (uniquement si exercice IA) */}
+            {hasSolutionTemplate && (
+              <div className="ef-solution-toggle">
+                <button
+                  className={`ef-toggle-btn ${!showSolutionTemplate ? 'active' : ''}`}
+                  onClick={() => setShowSolutionTemplate(false)}
+                >
+                  🔑 Solution de référence
+                </button>
+                <button
+                  className={`ef-toggle-btn ${showSolutionTemplate ? 'active' : ''}`}
+                  onClick={() => setShowSolutionTemplate(true)}
+                >
+                  📝 Template étudiant
+                </button>
+              </div>
+            )}
+
             <div className="ef-hint">
-              La solution de référence sert à vérifier la cohérence des test cases.
-              Elle n'est pas visible par les participants.
+              {showSolutionTemplate
+                ? "Template affiché à l'étudiant — il doit compléter les TODO."
+                : "Solution complète de référence — sert à vérifier les tests. Non visible par les participants."
+              }
             </div>
+
             <div className="ef-editor-wrapper">
-              <CodeMirror value={form.solution} onChange={v => handleField('solution', v)}
-                height="380px" extensions={getLangExt()} theme="dark" />
+              <CodeMirror
+                value={currentSolutionValue}
+                onChange={handleSolutionEditorChange}
+                height="380px"
+                extensions={getLangExt()}
+                theme="dark"
+              />
             </div>
+
             {testResults && (
               <div className="ef-test-results">
                 <div className={`ef-test-summary ${testResults.all_passed ? 'passed' : 'failed'}`}>
@@ -364,14 +431,12 @@ const ExerciseForm = ({ prefill = null }) => {
             ) : (
               <div className="ef-validate-report">
 
-                {/* Résumé */}
                 <div className={`ef-validate-summary ${validation.can_publish ? 'ok' : 'blocked'}`}>
                   {validation.can_publish
                     ? '✓ Exercice valide — prêt à être publié'
                     : `✗ ${validation.issues.length} problème(s) bloquant(s) à régler`}
                 </div>
 
-                {/* Problèmes bloquants */}
                 {validation.issues.length > 0 && (
                   <div className="ef-validate-block">
                     <h4 className="ef-validate-section-title ef-red">🚫 Problèmes bloquants</h4>
@@ -381,7 +446,6 @@ const ExerciseForm = ({ prefill = null }) => {
                   </div>
                 )}
 
-                {/* Corrections auto */}
                 {validation.auto_fixed.length > 0 && (
                   <div className="ef-validate-block">
                     <h4 className="ef-validate-section-title ef-blue">🔧 Corrections automatiques appliquées</h4>
@@ -391,7 +455,6 @@ const ExerciseForm = ({ prefill = null }) => {
                   </div>
                 )}
 
-                {/* Avertissements */}
                 {validation.warnings.length > 0 && (
                   <div className="ef-validate-block">
                     <h4 className="ef-validate-section-title ef-orange">⚠ Avertissements</h4>
@@ -401,7 +464,6 @@ const ExerciseForm = ({ prefill = null }) => {
                   </div>
                 )}
 
-                {/* Détail par test case */}
                 {validation.test_cases?.length > 0 && (
                   <div className="ef-validate-block">
                     <h4 className="ef-validate-section-title">📋 Détail par test case</h4>

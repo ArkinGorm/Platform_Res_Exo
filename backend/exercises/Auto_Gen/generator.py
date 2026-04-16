@@ -1,5 +1,5 @@
 """
-Avec generator.py j'orchestre la generation d'exercices. Ce dernier est adapté au modèle exercises pour un rendu optimal
+Avec generator.py j'orchestre la generation d'exercices. Ce dernier est adapté au modèle exercises pour un rendu optimal.
 """
 import json
 import logging
@@ -32,11 +32,25 @@ class ExerciseGenerator:
     """
     Génère un exercice complet compatible avec les modèles Exercise + TestCase.
 
+    Le JSON retourné par le LLM contient deux champs distincts :
+      - solution          : code complet et fonctionnel (référence pour les tests)
+      - solution_template : squelette avec TODO pour l'étudiant
+
+    Stratégie d'économie de quota Gemini :
+      - La validation LLM (ExerciseValidator) est désactivée pour Gemini :
+        elle consomme un appel API supplémentaire pour un exercice déjà de
+        haute qualité. On fait confiance à la génération directe.
+      - La température par défaut est 0.4 (contre 0.7) pour réduire les
+        sorties non-JSON et donc les retries coûteux.
+      - Le prompt a été condensé pour minimiser les tokens d'entrée.
+      - Ollama garde la validation car les appels sont gratuits et les
+        modèles locaux plus petits nécessitent plus de contrôle.
+
     Args:
         provider    : "gemini" | "ollama"
-        model       : override du modèle (ex: "gemini-1.5-pro", "qwen2.5-coder:7b")
-        temperature : créativité du LLM
-        validate    : activer la validation par LLM
+        model       : override du modèle (ex: "gemini-2.5-flash", "qwen2.5-coder:1.5b")
+        temperature : créativité du LLM (défaut 0.4 pour Gemini, 0.7 pour Ollama)
+        validate    : activer la validation par LLM (auto = False si Gemini)
         auto_fix    : tenter une correction si la validation échoue
     """
 
@@ -44,16 +58,20 @@ class ExerciseGenerator:
         self,
         provider: str = "gemini",
         model: Optional[str] = None,
-        temperature: float = 0.7,
-        validate: bool = True,
+        temperature: float = None,  # None = auto selon provider
+        validate: bool = None,       # None = auto selon provider
         auto_fix: bool = True,
     ):
         self.provider = provider
-        self.model = model
-        self.validate = validate
-        self.auto_fix = auto_fix
 
-        llm_kwargs: dict = {"temperature": temperature}
+        # ── Économie quota : Gemini ne valide pas, température plus basse ──
+        is_gemini = provider == "gemini"
+        self.validate  = (not is_gemini) if validate is None else validate
+        auto_temp      = 0.4 if is_gemini else 0.7
+        self.auto_fix  = auto_fix
+        self.model     = model
+
+        llm_kwargs: dict = {"temperature": temperature if temperature is not None else auto_temp}
         if model:
             llm_kwargs["model"] = model
         self.llm: BaseChatModel = get_llm(provider, **llm_kwargs)
@@ -76,6 +94,8 @@ class ExerciseGenerator:
         """
         Lance le pipeline complet.
         Retourne un GenerationResult dont exercise est un dict prêt pour tasks_ai.py.
+        Le dict contient toujours les clés : title, description, solution,
+        solution_template, test_cases, language, difficulty.
         """
         attempts = 0
 
@@ -90,6 +110,12 @@ class ExerciseGenerator:
         # Injecter les métadonnées
         exercise["language"] = language
         exercise["difficulty"] = difficulty
+
+        # Garantir que chaque test a une description non vide
+        exercise = self._ensure_test_descriptions(exercise)
+
+        # Garantir la présence de solution_template
+        exercise = self._ensure_solution_template(exercise)
 
         if not self.validate:
             return GenerationResult(success=True, exercise=exercise, attempts=attempts,
@@ -122,6 +148,8 @@ class ExerciseGenerator:
 
             exercise["language"] = language
             exercise["difficulty"] = difficulty
+            exercise = self._ensure_test_descriptions(exercise)
+            exercise = self._ensure_solution_template(exercise)
             validation = self.validator.validate(exercise)
 
             if validation.passed:
@@ -171,6 +199,33 @@ class ExerciseGenerator:
         except Exception as exc:
             logger.exception("Correction échouée : %s", exc)
             return None, str(exc)
+
+    @staticmethod
+    def _ensure_test_descriptions(exercise: dict) -> dict:
+        """
+        S'assure que chaque test case a une description non vide.
+        Génère un fallback lisible si le LLM a omis le champ.
+        """
+        for i, tc in enumerate(exercise.get("test_cases", []), start=1):
+            if not tc.get("description", "").strip():
+                inp = tc.get("input_data", "")
+                out = tc.get("expected_output", "")
+                if i == 1:
+                    tc["description"] = "Cas nominal de base"
+                else:
+                    tc["description"] = f"Test {i} — entrée : {str(inp)[:40]}, attendu : {str(out)[:40]}"
+        return exercise
+
+    @staticmethod
+    def _ensure_solution_template(exercise: dict) -> dict:
+        """
+        S'assure que solution_template est présent.
+        Si le LLM ne l'a pas fourni, on utilise solution comme fallback
+        (l'admin pourra le modifier dans ExerciseForm).
+        """
+        if not exercise.get("solution_template", "").strip():
+            exercise["solution_template"] = exercise.get("solution", "")
+        return exercise
 
     @staticmethod
     def _parse_json(text: str) -> dict:

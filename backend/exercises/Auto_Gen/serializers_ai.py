@@ -31,12 +31,22 @@ class GenerationRequestCreateSerializer(serializers.ModelSerializer):
 
 
 class GenerationRequestStatusSerializer(serializers.ModelSerializer):
-    """Retourné par l'endpoint de polling."""
+    """
+    Retourné par l'endpoint de polling.
+    Inclut toutes les données de l'exercice généré pour que le frontend
+    puisse pré-remplir ExerciseForm sans appel supplémentaire.
+    """
 
-    exercise_id    = serializers.SerializerMethodField()
-    exercise_title = serializers.SerializerMethodField()
-    test_cases_count = serializers.SerializerMethodField()
-    duration_seconds = serializers.SerializerMethodField()
+    exercise_id       = serializers.SerializerMethodField()
+    exercise_title    = serializers.SerializerMethodField()
+    exercise_description = serializers.SerializerMethodField()
+    exercise_solution    = serializers.SerializerMethodField()
+    exercise_solution_template = serializers.SerializerMethodField()
+    exercise_difficulty  = serializers.SerializerMethodField()
+    exercise_language    = serializers.SerializerMethodField()
+    exercise_test_cases  = serializers.SerializerMethodField()
+    test_cases_count  = serializers.SerializerMethodField()
+    duration_seconds  = serializers.SerializerMethodField()
 
     class Meta:
         model = ExerciseGenerationRequest
@@ -46,7 +56,10 @@ class GenerationRequestStatusSerializer(serializers.ModelSerializer):
             "auto_publish", "attempts",
             "validation_score", "error_message",
             "created_at", "started_at", "completed_at",
-            "exercise_id", "exercise_title",
+            # Données de l'exercice généré (pour pré-remplir ExerciseForm)
+            "exercise_id", "exercise_title", "exercise_description",
+            "exercise_solution", "exercise_solution_template",
+            "exercise_difficulty", "exercise_language", "exercise_test_cases",
             "test_cases_count", "duration_seconds",
             "celery_task_id",
         ]
@@ -57,6 +70,33 @@ class GenerationRequestStatusSerializer(serializers.ModelSerializer):
 
     def get_exercise_title(self, obj):
         return obj.exercise.title if obj.exercise else None
+
+    def get_exercise_description(self, obj):
+        return obj.exercise.description if obj.exercise else None
+
+    def get_exercise_solution(self, obj):
+        return obj.exercise.solution if obj.exercise else None
+
+    def get_exercise_solution_template(self, obj):
+        if obj.exercise:
+            # Retourne solution_template si le champ existe, sinon solution
+            return getattr(obj.exercise, "solution_template", None) or obj.exercise.solution
+        return None
+
+    def get_exercise_difficulty(self, obj):
+        return obj.exercise.difficulty if obj.exercise else None
+
+    def get_exercise_language(self, obj):
+        return obj.exercise.language if obj.exercise else None
+
+    def get_exercise_test_cases(self, obj):
+        if obj.exercise:
+            return list(
+                obj.exercise.test_cases.order_by("order").values(
+                    "id", "input_data", "expected_output", "description", "order"
+                )
+            )
+        return []
 
     def get_test_cases_count(self, obj):
         if obj.exercise:

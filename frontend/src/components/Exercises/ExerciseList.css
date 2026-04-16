@@ -1,0 +1,225 @@
+/* ═══════════════════════════════════════
+   ExerciseList — Design moderne
+═══════════════════════════════════════ */
+
+/* ── Page wrapper ── */
+.el-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* ── Loading ── */
+.el-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 1rem;
+  color: #667eea;
+}
+
+.el-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid #e0e7ff;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Hero ── */
+.el-hero {
+  text-align: center;
+  padding: 3rem 1rem 2.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  color: white;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.el-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+.el-hero h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  position: relative;
+}
+
+.el-hero p {
+  font-size: 1.05rem;
+  opacity: 0.88;
+  margin: 0 0 1.5rem;
+  position: relative;
+}
+
+/* ── Stats pills ── */
+.el-stats {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  position: relative;
+}
+
+.el-stat {
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+  font-size: 0.85rem;
+  color: white;
+}
+
+.el-stat strong { font-weight: 700; margin-right: 0.25rem; }
+.el-stat--facile  { background: rgba(76,175,80,0.35); border-color: rgba(76,175,80,0.5); }
+.el-stat--moyen   { background: rgba(255,152,0,0.35); border-color: rgba(255,152,0,0.5); }
+.el-stat--difficile { background: rgba(244,67,54,0.35); border-color: rgba(244,67,54,0.5); }
+
+/* ── Toolbar ── */
+.el-toolbar {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.el-search {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 220px;
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 0 1rem;
+  gap: 0.6rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.el-search:focus-within {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+}
+
+.el-search svg {
+  width: 18px;
+  height: 18px;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.el-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 0.75rem 0;
+  font-size: 0.95rem;
+  background: transparent;
+  color: #333;
+}
+
+.el-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #aaa;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.3rem;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+.el-clear:hover { color: #667eea; }
+
+.el-filters {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.el-filters select {
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  background: white;
+  color: #444;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.2rem;
+}
+
+.el-filters select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* ── Résultats info ── */
+.el-results-info {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Grid ── */
+.el-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+/* ── Empty state ── */
+.el-empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #aaa;
+}
+
+.el-empty-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.el-empty p {
+  font-size: 1.1rem;
+  margin-bottom: 1.25rem;
+}
+
+.el-empty button {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1.4rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.el-empty button:hover { opacity: 0.85; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .el-hero h1 { font-size: 1.6rem; }
+  .el-toolbar { flex-direction: column; }
+  .el-search { width: 100%; }
+  .el-filters { width: 100%; }
+  .el-filters select { flex: 1; }
+}

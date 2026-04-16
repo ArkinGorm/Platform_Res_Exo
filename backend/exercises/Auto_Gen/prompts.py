@@ -2,7 +2,7 @@
 LangChain prompt templates adaptés au modèle Exercise existant.
 
 Correspondances :
-  Exercise.solution        ← ce qu'on appelle "solution_template" dans les prompts
+  Exercise.solution        ← solution complète + version TODO pour l'étudiant
   TestCase.input_data      ← "input"
   TestCase.expected_output ← "expected_output"
   TestCase.description     ← "description"
@@ -30,38 +30,41 @@ Tu DOIS répondre uniquement avec un objet JSON valide, sans markdown, sans expl
 GENERATION_PROMPT = ChatPromptTemplate.from_messages([
     ("system", SYSTEM_PROMPT),
     ("human", """\
-Génère un exercice de code avec ces contraintes :
+Génère un exercice de code. Réponds UNIQUEMENT avec le JSON demandé.
 
+Contraintes :
 - Langage    : {language}
 - Difficulté : {difficulty}  (facile | moyen | difficile)
 - Sujet      : {topic}
-- Instructions supplémentaires : {extra_instructions}
+- Instructions : {extra_instructions}
 
-Retourne un objet JSON avec EXACTEMENT ces champs :
+JSON attendu (respecte EXACTEMENT ce schéma) :
 {{
-  "title": "Titre court et descriptif (max 80 caractères)",
-  "description": "Description complète en Markdown. Inclure le contexte, les contraintes, un exemple entrée/sortie.",
-  "solution": "Code de départ en {language} avec des marqueurs TODO où l'étudiant doit compléter. Syntaxiquement valide.",
+  "title": "Titre court (max 80 car.)",
+  "description": "Description Markdown auto-suffisante avec contexte, contraintes et un exemple entrée/sortie.",
+  "solution": "Code {language} COMPLET et fonctionnel résolvant le problème. La fonction doit s'appeler 'solution'. Pas de TODO ici — c'est la solution de référence servant à faire tourner les tests.",
+  "solution_template": "Même squelette que solution mais avec le corps remplacé par des commentaires TODO indiquant à l'étudiant quoi implémenter. La signature de la fonction doit être identique.",
   "test_cases": [
     {{
-      "input_data": "valeur d'entrée exacte (chaîne, nombre, ou JSON sérialisé)",
-      "expected_output": "sortie attendue exacte",
-      "description": "Ce que ce test vérifie"
+      "input_data": "valeur exacte (chaîne, nombre ou JSON sérialisé)",
+      "expected_output": "sortie exacte correspondante",
+      "description": "Phrase courte décrivant CE QUE ce test vérifie (ex: cas nominal, valeur nulle, liste vide…)"
     }}
   ]
 }}
 
-Règles importantes :
-- Fournis au moins 3 tests (dont des cas limites).
-- La solution doit avoir des marqueurs TODO clairs là où l'étudiant code.
-- La description doit être auto-suffisante (sans référence externe).
-- Toutes les entrées/sorties des tests doivent être cohérentes entre elles.
-- Pour {language}, respecte les conventions du langage (indentation, types, etc.).
+Règles :
+- Minimum 3 tests unitaires dont au moins 1 cas limite (valeur nulle, liste vide, négatif…).
+- Chaque test DOIT avoir une description non vide.
+- Toutes les entrées/sorties doivent être cohérentes avec la description.
+- La fonction s'appelle toujours "solution" dans les deux champs.
+- "solution" est le code complet exécutable — les tests tournent contre cette fonction.
+- "solution_template" est ce que verra l'étudiant — corps vide avec TODO.
 """),
 ])
 
 # ---------------------------------------------------------------------------
-# Prompt de validation
+# Prompt de validation (LLM-as-judge — utilisé uniquement pour Ollama)
 # ---------------------------------------------------------------------------
 VALIDATION_PROMPT = ChatPromptTemplate.from_messages([
     ("system", """\
@@ -78,7 +81,7 @@ Difficulté : {difficulty}
 Description :
 {description}
 
-Solution (template étudiant) :
+Solution de référence (complète) :
 {solution}
 
 Tests :
@@ -98,7 +101,7 @@ Retourne un JSON :
 Critères :
 - Le titre reflète bien le contenu
 - La description est claire et complète
-- La solution est du {language} valide avec des TODO
+- La solution est du {language} valide et résout le problème décrit
 - Les tests sont cohérents avec la description
 - La difficulté correspond au niveau demandé
 - Score >= 75 = exercice valide
@@ -106,24 +109,23 @@ Critères :
 ])
 
 # ---------------------------------------------------------------------------
-# Prompt de correction
+# Prompt de correction (compact)
 # ---------------------------------------------------------------------------
 REGENERATION_PROMPT = ChatPromptTemplate.from_messages([
     ("system", SYSTEM_PROMPT),
     ("human", """\
-L'exercice suivant a échoué la revue qualité. Corrige TOUS les problèmes
-et retourne la version corrigée en JSON (même schéma qu'avant).
+Corrige cet exercice qui a échoué la revue qualité. \
+Retourne UNIQUEMENT le JSON corrigé (même schéma : title, description, solution, solution_template, test_cases).
+Chaque test_case doit avoir une description non vide.
+La fonction doit toujours s'appeler "solution".
 
 --- EXERCICE ORIGINAL ---
 {original_exercise}
 
---- PROBLÈMES DÉTECTÉS ---
+--- PROBLÈMES ---
 {issues}
 
 --- SUGGESTIONS ---
 {suggestions}
-
-Retourne l'exercice corrigé en JSON avec les champs :
-title, description, solution, test_cases
 """),
 ])

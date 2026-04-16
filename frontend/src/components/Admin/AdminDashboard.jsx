@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  getAdminExercises, publishExercise, unpublishExercise, deleteExercise
+  getAdminExercises, publishExercise, unpublishExercise, deleteExercise, getMyStats
 } from '../../services/api';
 import toast from 'react-hot-toast';
 import './AdminDashboard.css';
@@ -10,9 +10,20 @@ const AdminDashboard = () => {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [filter, setFilter]       = useState('all'); // all | published | unpublished
+  const [globalStats, setGlobalStats] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => { loadExercises(); }, []);
+  useEffect(() => {
+    loadExercises();
+    loadGlobalStats();
+  }, []);
+
+  const loadGlobalStats = async () => {
+    try {
+      const res = await getMyStats();
+      setGlobalStats(res.data);
+    } catch { /* stats non critiques */ }
+  };
 
   const loadExercises = async () => {
     try {
@@ -78,6 +89,34 @@ const AdminDashboard = () => {
             + Créer manuellement
           </button>
         </div>
+      </div>
+
+      {/* Stats globales */}
+      <div className="adm-stats-row">
+        <div className="adm-stat-card">
+          <span className="adm-stat-value">{exercises.length}</span>
+          <span className="adm-stat-label">Exercices total</span>
+        </div>
+        <div className="adm-stat-card">
+          <span className="adm-stat-value">{exercises.filter(e => e.is_published).length}</span>
+          <span className="adm-stat-label">Publiés</span>
+        </div>
+        <div className="adm-stat-card">
+          <span className="adm-stat-value">{exercises.filter(e => !e.is_published).length}</span>
+          <span className="adm-stat-label">Brouillons</span>
+        </div>
+        {globalStats && (
+          <>
+            <div className="adm-stat-card">
+              <span className="adm-stat-value">{globalStats.total}</span>
+              <span className="adm-stat-label">Soumissions</span>
+            </div>
+            <div className="adm-stat-card adm-stat-card--success">
+              <span className="adm-stat-value">{Math.round(globalStats.success_rate)}%</span>
+              <span className="adm-stat-label">Taux de réussite</span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Filtres */}

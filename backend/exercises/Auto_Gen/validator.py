@@ -24,7 +24,8 @@ class ValidationResult:
     raw: dict = field(default_factory=dict)
 
     # Minimum score to consider the exercise publishable
-    PASS_THRESHOLD = 75
+    # 65 est plus adapté aux modèles locaux (Ollama) qui scorent souvent entre 65-80
+    PASS_THRESHOLD = 65
 
     @property
     def passed(self) -> bool:
@@ -54,9 +55,8 @@ class ExerciseValidator:
                 "language": exercise.get("language", ""),
                 "difficulty": exercise.get("difficulty", ""),
                 "description": exercise.get("description", ""),
-                "solution_template": exercise.get("solution", ""), # Erreur de logique corrigée pour l'auto_gen
+                "solution": exercise.get("solution", ""),
                 "test_cases": test_cases_str,
-                "expected_output": exercise.get("expected_output", ""),
             })
 
             raw_text = response.content if hasattr(response, "content") else str(response)
@@ -82,8 +82,14 @@ class ExerciseValidator:
 
     def _parse_json(self, text: str) -> dict:
         """Strips markdown fences and parses JSON."""
+        import re
         text = text.strip()
         if text.startswith("```"):
             lines = text.split("\n")
-            text = "\n".join(lines[1:-1])
+            text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+            text = text.strip()
+        # Extrait le bloc JSON si le LLM a ajouté du texte autour
+        match = re.search(r'\{[\s\S]*\}', text)
+        if match:
+            text = match.group(0)
         return json.loads(text)

@@ -18,11 +18,15 @@ class AIProvider(str, Enum):
 
 PROVIDER_LABELS = {
     AIProvider.GEMINI: "Google Gemini",
-    AIProvider.OLLAMA: "Ollama — qwen2.5-coder:7b",
+    AIProvider.OLLAMA: "Ollama — qwen2.5-coder:1.5b",
 }
 
 # Modèle Ollama par défaut — peut être surchargé par la variable d'env OLLAMA_MODEL
-DEFAULT_OLLAMA_MODEL = getattr(settings, "OLLAMA_MODEL", "qwen2.5-coder:7b")
+DEFAULT_OLLAMA_MODEL = getattr(settings, "OLLAMA_MODEL", "qwen2.5-coder:1.5b")
+
+# Modèle Gemini par défaut — lu depuis settings (GEMINI_MODEL dans .env)
+# Fallback sur gemini-2.5-flash qui est stable et disponible
+DEFAULT_GEMINI_MODEL = getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash")
 
 
 def get_llm(provider: str, **kwargs) -> BaseChatModel:
@@ -30,7 +34,7 @@ def get_llm(provider: str, **kwargs) -> BaseChatModel:
     Factory function — returns a LangChain chat model for the given provider.
 
     Usage:
-        llm = get_llm("ollama")                          # qwen2.5-coder:7b par défaut
+        llm = get_llm("ollama")                          # qwen2.5-coder:1.5b par défaut
         llm = get_llm("ollama", model="llama3:8b")       # autre modèle
         llm = get_llm("gemini", temperature=0.2)
     """
@@ -45,17 +49,26 @@ def get_llm(provider: str, **kwargs) -> BaseChatModel:
 
 
 def _build_gemini(
-    model: str = "gemini-3.5-flash",
+    model: Optional[str] = None,
     temperature: float = 0.7,
     **kwargs,
 ) -> ChatGoogleGenerativeAI:
+    """
+    Construit un client Gemini.
+
+    Le modèle est résolu dans cet ordre :
+      1. Paramètre model passé à la fonction
+      2. Variable d'env / setting GEMINI_MODEL
+      3. Fallback : gemini-2.0-flash (stable et disponible)
+    """
     api_key = getattr(settings, "GEMINI_API_KEY", None)
     if not api_key:
         raise EnvironmentError(
             "GEMINI_API_KEY is not set in Django settings / environment."
         )
+    resolved_model = model or DEFAULT_GEMINI_MODEL
     return ChatGoogleGenerativeAI(
-        model=model,
+        model=resolved_model,
         google_api_key=api_key,
         temperature=temperature,
         convert_system_message_to_human=True,
@@ -80,7 +93,7 @@ def _build_ollama(
     Le modèle est résolu dans cet ordre :
       1. Paramètre model passé à la fonction
       2. Variable d'env / setting OLLAMA_MODEL
-      3. Fallback : qwen2.5-coder:7b
+      3. Fallback : qwen2.5-coder:1.5b
     """
     url = (
         base_url
@@ -109,7 +122,7 @@ def list_providers() -> list[dict]:
 
 def check_ollama_connection() -> dict:
     """
-    Vérifie qu'Ollama est accessible et que qwen2.5-coder:7b est bien présent.
+    Vérifie qu'Ollama est accessible et que le modèle configuré est bien présent.
     Utile pour déboguer depuis le shell Django :
         from exercises.Auto_Gen.providers import check_ollama_connection
         check_ollama_connection()
@@ -118,7 +131,7 @@ def check_ollama_connection() -> dict:
     from django.conf import settings as dj_settings
 
     url = getattr(dj_settings, "OLLAMA_BASE_URL", "http://host.docker.internal:11434")
-    model = getattr(dj_settings, "OLLAMA_MODEL", "qwen2.5-coder:7b")
+    model = getattr(dj_settings, "OLLAMA_MODEL", "qwen2.5-coder:1.5b")
 
     result = {"url": url, "model": model, "reachable": False, "model_available": False}
 

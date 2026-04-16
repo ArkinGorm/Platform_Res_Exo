@@ -4,6 +4,22 @@ import { register } from '../../services/api';
 import toast from 'react-hot-toast';
 import './Auth.css';
 
+const EyeIcon = ({ visible }) =>
+  visible ? (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  ) : (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+
 const Register = () => {
   const [formData, setFormData] = useState({
     username: '',
@@ -11,6 +27,8 @@ const Register = () => {
     password: '',
     password2: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword2, setShowPassword2] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -33,7 +51,7 @@ const Register = () => {
       toast.success('Inscription réussie ! Vous pouvez vous connecter');
       navigate('/login');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Erreur d\'inscription');
+      toast.error(error.response?.data?.message || "Erreur d'inscription");
     } finally {
       setLoading(false);
     }
@@ -66,23 +84,43 @@ const Register = () => {
           </div>
           <div className="form-group">
             <label>Mot de passe</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
+            <div className="password-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Masquer' : 'Afficher'}
+              >
+                <EyeIcon visible={showPassword} />
+              </button>
+            </div>
           </div>
           <div className="form-group">
             <label>Confirmer le mot de passe</label>
-            <input
-              type="password"
-              name="password2"
-              value={formData.password2}
-              onChange={handleChange}
-              required
-            />
+            <div className="password-wrapper">
+              <input
+                type={showPassword2 ? 'text' : 'password'}
+                name="password2"
+                value={formData.password2}
+                onChange={handleChange}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword2((v) => !v)}
+                aria-label={showPassword2 ? 'Masquer' : 'Afficher'}
+              >
+                <EyeIcon visible={showPassword2} />
+              </button>
+            </div>
           </div>
           <button type="submit" disabled={loading} className="auth-btn">
             {loading ? 'Inscription...' : "S'inscrire"}
