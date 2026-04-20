@@ -114,9 +114,10 @@ def _build_ollama(
 
 def list_providers() -> list[dict]:
     """Returns available providers for the frontend selector."""
+    ollama_model = getattr(settings, "OLLAMA_MODEL", "qwen2.5-coder:1.5b")
     return [
-        {"id": p.value, "label": PROVIDER_LABELS[p]}
-        for p in AIProvider
+        {"id": AIProvider.GEMINI.value, "label": PROVIDER_LABELS[AIProvider.GEMINI]},
+        {"id": AIProvider.OLLAMA.value, "label": f"Ollama — {ollama_model} (local)"},
     ]
 
 

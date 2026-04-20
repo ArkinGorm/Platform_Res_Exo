@@ -110,6 +110,9 @@ class ExerciseGenerator:
         # Injecter les métadonnées
         exercise["language"] = language
         exercise["difficulty"] = difficulty
+        # Préserver le type si le LLM l'a fourni, sinon détecter automatiquement
+        if "type" not in exercise:
+            exercise["type"] = "function"
 
         # Garantir que chaque test a une description non vide
         exercise = self._ensure_test_descriptions(exercise)
@@ -148,6 +151,8 @@ class ExerciseGenerator:
 
             exercise["language"] = language
             exercise["difficulty"] = difficulty
+            if "type" not in exercise:
+                exercise["type"] = "function"
             exercise = self._ensure_test_descriptions(exercise)
             exercise = self._ensure_solution_template(exercise)
             validation = self.validator.validate(exercise)

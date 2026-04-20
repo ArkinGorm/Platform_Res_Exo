@@ -41,10 +41,15 @@ const ExerciseDetail = () => {
     try {
       const response = await getExercise(id);
       setExercise(response.data);
-      if (response.data.language === 'javascript')
+      // Charger le template étudiant s'il existe, sinon starter vide
+      const tmpl = response.data.solution_template?.trim();
+      if (tmpl) {
+        setCode(tmpl);
+      } else if (response.data.language === 'javascript') {
         setCode('// Écris ton code ici\n');
-      else if (response.data.language === 'python')
+      } else if (response.data.language === 'python') {
         setCode('# Écris ton code ici\n');
+      }
     } catch {
       toast.error("Erreur lors du chargement de l'exercice");
     } finally {
@@ -209,10 +214,24 @@ const ExerciseDetail = () => {
               <div className="ex-test-list">
                 {results.map((result, index) => (
                   <div key={index} className={`ex-test-item ${result.passed ? 'passed' : 'failed'}`}>
-                    <span className="ex-test-icon">{result.passed ? '✓' : '✗'}</span>
-                    <span className="ex-test-label">Test {index + 1}</span>
-                    {result.execution_time != null && (
-                      <span className="ex-test-time">{Number(result.execution_time).toFixed(0)}ms</span>
+                    <div className="ex-test-header">
+                      <span className="ex-test-icon">{result.passed ? '✓' : '✗'}</span>
+                      <span className="ex-test-label">Test {index + 1}</span>
+                      {result.execution_time != null && (
+                        <span className="ex-test-time">{Number(result.execution_time).toFixed(0)}ms</span>
+                      )}
+                    </div>
+                    {!result.passed && (
+                      <div className="ex-test-detail">
+                        {result.error && (
+                          <div className="ex-test-error">⚠ {result.error}</div>
+                        )}
+                        {result.output && !result.error && (
+                          <div className="ex-test-mismatch">
+                            <span className="ex-test-got">Obtenu : {result.output}</span>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}

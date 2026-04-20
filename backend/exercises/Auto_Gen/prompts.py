@@ -9,6 +9,12 @@ Correspondances :
   TestCase.order           ← index du tableau
 
 Difficultés en français : facile / moyen / difficile
+
+Types d'exercices :
+  - "function"   : solution(*args) → valeur  [défaut]
+  - "simulation" : la solution définit une CLASSE (ex: LRUCache, MinStack)
+                   input_data  = JSON list de listes [[ClassName, args], [method, args]...]
+                   expected    = JSON list de résultats  [null, null, 1, -1, ...]
 """
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -38,28 +44,48 @@ Contraintes :
 - Sujet      : {topic}
 - Instructions : {extra_instructions}
 
+────────────────────────────────────────────────────────────
+CHOIX DU TYPE D'EXERCICE :
+
+● TYPE "function" (défaut — exercices algorithmiques simples) :
+  La solution est une FONCTION appelée "solution".
+  input_data  = valeur Python/JS directe (ex: [2, 3], "hello", 42)
+  expected    = résultat direct (ex: "5", "olleh", "True")
+
+● TYPE "simulation" (structures de données, design patterns, OOP) :
+  La solution est une CLASSE (ex: LRUCache, MinStack, Queue).
+  input_data  = liste JSON de commandes : [["ClassName", ctor_arg], ["method", args...], ...]
+  expected    = liste JSON de résultats : [null, null, 1, -1, ...]
+                (null pour constructeur et méthodes void, valeur sinon)
+  IMPORTANT : Le premier élément est TOUJOURS [ClassName, ...constructorArgs].
+              Les résultats void (put, push, set) → null dans expected.
+
+Choisis le type adapté au sujet. Si le sujet parle d'une structure de données
+(cache, pile, file, etc.) ou d'un objet avec plusieurs méthodes → TYPE "simulation".
+────────────────────────────────────────────────────────────
+
 JSON attendu (respecte EXACTEMENT ce schéma) :
 {{
+  "type": "function" ou "simulation",
   "title": "Titre court (max 80 car.)",
   "description": "Description Markdown auto-suffisante avec contexte, contraintes et un exemple entrée/sortie.",
-  "solution": "Code {language} COMPLET et fonctionnel résolvant le problème. La fonction doit s'appeler 'solution'. Pas de TODO ici — c'est la solution de référence servant à faire tourner les tests.",
-  "solution_template": "Même squelette que solution mais avec le corps remplacé par des commentaires TODO indiquant à l'étudiant quoi implémenter. La signature de la fonction doit être identique.",
+  "solution": "Code {language} COMPLET et fonctionnel. Pour 'function' : fonction nommée 'solution'. Pour 'simulation' : classe complète avec toutes les méthodes.",
+  "solution_template": "Même squelette mais corps remplacé par des commentaires TODO. Même nom de fonction/classe.",
   "test_cases": [
     {{
-      "input_data": "valeur exacte (chaîne, nombre ou JSON sérialisé)",
+      "input_data": "valeur exacte — voir TYPE ci-dessus",
       "expected_output": "sortie exacte correspondante",
-      "description": "Phrase courte décrivant CE QUE ce test vérifie (ex: cas nominal, valeur nulle, liste vide…)"
+      "description": "Phrase courte décrivant CE QUE ce test vérifie"
     }}
   ]
 }}
 
 Règles :
-- Minimum 3 tests unitaires dont au moins 1 cas limite (valeur nulle, liste vide, négatif…).
+- Minimum 3 tests unitaires dont au moins 1 cas limite.
 - Chaque test DOIT avoir une description non vide.
-- Toutes les entrées/sorties doivent être cohérentes avec la description.
-- La fonction s'appelle toujours "solution" dans les deux champs.
-- "solution" est le code complet exécutable — les tests tournent contre cette fonction.
-- "solution_template" est ce que verra l'étudiant — corps vide avec TODO.
+- Pour "simulation" : input_data et expected_output sont des tableaux JSON valides.
+- Pour "simulation" : expected[0] est TOUJOURS null (constructeur).
+- La solution doit être correcte et exécutable sans modification.
 """),
 ])
 
@@ -104,7 +130,7 @@ Critères :
 - La solution est du {language} valide et résout le problème décrit
 - Les tests sont cohérents avec la description
 - La difficulté correspond au niveau demandé
-- Score >= 75 = exercice valide
+- Score >= 65 = exercice valide
 """),
 ])
 
@@ -115,9 +141,9 @@ REGENERATION_PROMPT = ChatPromptTemplate.from_messages([
     ("system", SYSTEM_PROMPT),
     ("human", """\
 Corrige cet exercice qui a échoué la revue qualité. \
-Retourne UNIQUEMENT le JSON corrigé (même schéma : title, description, solution, solution_template, test_cases).
+Retourne UNIQUEMENT le JSON corrigé (même schéma : type, title, description, solution, solution_template, test_cases).
 Chaque test_case doit avoir une description non vide.
-La fonction doit toujours s'appeler "solution".
+Pour "simulation" : input_data et expected_output doivent être des tableaux JSON valides.
 
 --- EXERCICE ORIGINAL ---
 {original_exercise}

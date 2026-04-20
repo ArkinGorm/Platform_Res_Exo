@@ -67,7 +67,7 @@ export const getSubmissionStatus = (submissionId) =>
   API.get(`/submissions/${submissionId}/`);
 
 export const getMyStats = () =>
-  API.get('/submissions/my-stats/');
+  API.get('/submissions/my_stats/');
 
 export const runCode = (exerciseId, code, userInput) =>
   API.post('/submissions/run/', { exercise_id: exerciseId, code, user_input: userInput });

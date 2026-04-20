@@ -346,3 +346,33 @@
   background: rgba(39,201,63,0.25);
   border-color: rgba(39,201,63,0.5);
 }
+
+/* ── Détail des tests échoués ─────────────────────────────── */
+.ex-test-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ex-test-detail {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: rgba(255, 80, 80, 0.08);
+  border-left: 2px solid rgba(255, 80, 80, 0.4);
+  border-radius: 0 4px 4px 0;
+  font-size: 0.78rem;
+  font-family: 'Fira Code', monospace;
+}
+
+.ex-test-error {
+  color: #ff6b6b;
+  word-break: break-all;
+}
+
+.ex-test-mismatch {
+  color: #ffa94d;
+}
+
+.ex-test-got {
+  display: block;
+}

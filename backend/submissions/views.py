@@ -2,11 +2,19 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.conf import settings
 from .models import Submission
 from .serializers import SubmissionSerializer, SubmissionCreateSerializer
 from .tasks import execute_code_task
 from .sandbox import CodeSandbox
 from exercises.models import Exercise
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _use_celery() -> bool:
+    return getattr(settings, "EXECUTION_MODE", "local").lower() == "celery"
 
 
 class SubmissionViewSet(viewsets.ModelViewSet):
@@ -21,24 +29,48 @@ class SubmissionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def submit(self, request):
-        """Soumettre une solution (asynchrone) — lance les vrais tests"""
+        """Soumettre une solution — async (celery) ou sync (local)"""
         serializer = SubmissionCreateSerializer(data=request.data)
-        if serializer.is_valid():
-            submission = Submission.objects.create(
-                user=request.user,
-                exercise=serializer.validated_data['exercise'],
-                code=serializer.validated_data['code'],
-                status='pending'
-            )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        submission = Submission.objects.create(
+            user=request.user,
+            exercise=serializer.validated_data['exercise'],
+            code=serializer.validated_data['code'],
+            status='pending'
+        )
+
+        if _use_celery():
             task = execute_code_task.delay(submission.id)
             return Response({
                 'submission_id': submission.id,
                 'status': 'pending',
                 'task_id': task.id,
-                'message': 'Code envoyé pour exécution'
+                'message': 'Code envoyé pour exécution',
             }, status=status.HTTP_202_ACCEPTED)
+        else:
+            # Mode local : exécution synchrone dans un thread (comme views_ai.py)
+            import threading
+            from django.db import connection as db_conn
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            pk = submission.id
+
+            def _run():
+                db_conn.close()
+                try:
+                    from .tasks import _run_submission
+                    _run_submission(pk)
+                except Exception as exc:
+                    logger.exception("Erreur exécution locale submission %s : %s", pk, exc)
+
+            threading.Thread(target=_run, daemon=True).start()
+
+            return Response({
+                'submission_id': submission.id,
+                'status': 'pending',
+                'message': 'Exécution démarrée (mode local)',
+            }, status=status.HTTP_202_ACCEPTED)
 
     @action(detail=False, methods=['post'])
     def run(self, request):

@@ -185,8 +185,8 @@ class ExerciseViewSet(viewsets.ModelViewSet):
 
             class _FakeTc:
                 def __init__(self, data, idx):
-                    self.id           = idx
-                    self.input_data   = data.get('input_data', '')
+                    self.id              = idx
+                    self.input_data      = data.get('input_data', '')
                     self.expected_output = data.get('expected_output', '')
 
             fake_tcs = [_FakeTc(tc, i) for i, tc in enumerate(test_cases)]
