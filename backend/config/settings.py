@@ -1,6 +1,9 @@
-from dotenv import load_dotenv
-from pathlib import Path
 import os
+from datetime import timedelta
+from pathlib import Path
+from dotenv import load_dotenv
+
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -8,9 +11,7 @@ load_dotenv(BASE_DIR.parent / ".env")
 
 # Django settings for config project.
 
-import os
-from datetime import timedelta
-from pathlib import Path
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 

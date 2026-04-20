@@ -164,8 +164,7 @@ const GenerateAI = () => {
           {config.provider === 'gemini' && (
             <div className="gen-field">
               <label>Version Gemini</label>
-              <select className="gen-select" value={config.model} onChange={e => setConfig(c => ({ ...c, model: e.target.value }))}>
-                <option value="gemini-2.0-flash">gemini-2.0-flash (si disponible)</option>
+              <select className="gen-select" value={config.model} onChange={e => setConfig(c => ({ ...c, model: e.target.value }))}>                
                 <option value="gemini-2.5-flash">gemini-2.5-flash (rapide, stable)</option>
                 <option value="gemini-2.5-pro">gemini-2.5-pro (qualité max)</option>
               </select>

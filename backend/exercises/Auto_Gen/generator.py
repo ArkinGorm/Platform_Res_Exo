@@ -229,8 +229,16 @@ class ExerciseGenerator:
 
     @staticmethod
     def _parse_json(text: str) -> dict:
+        import re
         text = text.strip()
+        # Supprimer les fences markdown (```json ... ``` ou ``` ... ```)
         if text.startswith("```"):
             lines = text.split("\n")
-            text = "\n".join(lines[1:-1])
+            inner = lines[1:-1] if lines[-1].strip() == "```" else lines[1:]
+            text = "\n".join(inner).strip()
+        # Si le LLM a ajouté du texte autour du JSON, extraire le premier objet {...}
+        if not text.startswith("{"):
+            match = re.search(r'\{[\s\S]*\}', text)
+            if match:
+                text = match.group(0)
         return json.loads(text)

@@ -17,6 +17,9 @@ const ExerciseForm = ({ prefill = null }) => {
   const navigate = useNavigate();
   const isEdit   = Boolean(id);
 
+  // ID de l'exercice déjà créé en base par l'IA (évite le doublon lors de la sauvegarde)
+  const [aiExerciseId, setAiExerciseId] = useState(null);
+
   const [form, setForm] = useState({
     title: '', description: '', difficulty: 'facile',
     language: 'python', solution: '', solution_template: '', is_published: false,
@@ -33,6 +36,10 @@ const ExerciseForm = ({ prefill = null }) => {
 
   useEffect(() => {
     if (prefill) {
+      // Mémoriser l'ID de l'exercice déjà créé par l'IA en base
+      // → handleSave fera un PUT (update) au lieu d'un POST (create), évitant le doublon
+      setAiExerciseId(prefill.exercise_id || null);
+
       setForm({
         title:             prefill.title             || '',
         description:       prefill.description       || '',
@@ -96,7 +103,8 @@ const ExerciseForm = ({ prefill = null }) => {
     if (!form.solution.trim()) return toast.error('Écris une solution de référence d\'abord');
     setTesting(true); setTestResults(null);
     try {
-      let eid = id;
+      // Priorité : exercice IA déjà en base → exercice en cours d'édition → création temporaire
+      let eid = aiExerciseId || id;
       if (!eid) {
         const res = await createExercise({ ...form, test_cases: testCases });
         eid = res.data.id;
@@ -154,10 +162,16 @@ const ExerciseForm = ({ prefill = null }) => {
     setSaving(true);
     try {
       const payload = { ...form, is_published: publish, test_cases: testCases };
-      if (isEdit) {
-        await updateExercise(id, payload);
+
+      // Résoudre l'ID réel : édition manuelle → prefill IA → création
+      const resolvedId = id || aiExerciseId;
+
+      if (resolvedId) {
+        // PUT : mise à jour de l'exercice existant (édition manuelle OU exercice IA déjà en base)
+        await updateExercise(resolvedId, payload);
         toast.success(publish ? 'Exercice publié !' : 'Exercice mis à jour');
       } else {
+        // POST : création d'un nouvel exercice (formulaire vierge)
         await createExercise(payload);
         toast.success(publish ? 'Exercice créé et publié !' : 'Exercice sauvegardé en brouillon');
       }
