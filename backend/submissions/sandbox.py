@@ -60,7 +60,7 @@ def _detect_exercise_type(input_data: str) -> str:
       "function"   → tout le reste (défaut)
     """
     stripped = input_data.strip()
-    if stripped.startswith("[["):
+    if stripped.startswith("[["):                   # if stripped.startswith("[["):
         try:
             parsed = json.loads(stripped)
             if (
